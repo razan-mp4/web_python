@@ -4,13 +4,15 @@
 left to right direction
 skinparam packageStyle rectangle
 
-actor User
+actor Guest as User
 actor Admin
+actor "Super Admin" as Super
 
+Admin <|-- Super
 
 rectangle DentistOffice {
-  User --> (Make/Cancel Appointment): <<if loged in as patient>>
-  User -right-> (View Appointment): <<if loged in as patient>>
+  User --> (Make/Cancel Appointment): <<if loged in as user>>
+  User -right-> (View Appointment): <<if loged in as user>>
 
   
   Admin -left-> (Add/Remove Dentist)
@@ -26,7 +28,7 @@ rectangle DentistOffice {
   Admin -left-> (Create Patient)
   User -right-> (Create Patient)
   Admin -left-> (Delete Patient)
-  User -right-> (Delete Patient): <<if loged in as patient>>
+  User -right-> (Delete Patient): <<if loged in as user>>
   Admin -left-> (View Patient/Patients List)
 
   Admin -left-> (View Dentist/Dentists List)
