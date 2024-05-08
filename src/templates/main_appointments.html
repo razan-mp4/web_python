@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Appointments</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        /* Additional custom styles */
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            padding-top: 100px; 
+        }
+        header {
+            flex-shrink: 0;
+        }
+        .navbar {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 1000;
+        }
+        .container {
+            padding: 20px;
+        }
+        footer {
+            background-color: #343a40;
+            color: #ffffff;
+            padding: 20px 0;
+            text-align: center;
+            margin-top: auto;
+            width: 100%;
+        }
+        .appointment-item {
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 20px;
+        }
+        .buttons-group {
+            display: flex;
+            flex-direction: row;
+            padding-bottom: 20px;
+        }
+        .btngrp {
+            height: 40px;
+            margin-right: 10px;
+        }
+        .appointment-item {
+    border: 1px solid #ced4da;
+    border-radius: 5px;
+    padding: 10px;
+    margin-bottom: 20px;
+    display: inline-block; /* or display: inline; */
+    width: calc(33.33% - 20px); /* Adjust width as needed */
+    margin-right: 20px; /* Add margin between items */
+    vertical-align: top; /* Align items to the top */
+}
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <div class="container">
+        <a class="navbar-brand" href="#">Odemchuk Dental</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav">
+                <li class="nav-item">
+                    <a class="nav-link" href="/main_about">About</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/main_patient_card">Patient Card</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/main_dentists">Dentists</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/main_treatments">Treatments</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/main_appointments">Appointments</a>
+                </li>
+                <li class="nav-item usersLi" style="display: none;">
+                    <a class="nav-link" href="/main_users">Users</a>
+                </li>
+                <li class="nav-item">
+                    <button class="btn btn-outline-danger" onclick="signOut()">Sign Out</button>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container">
+    <section id="appointments">
+        <h2>Appointments</h2>
+        <button class="btn btn-primary mb-3" onclick="toggleCreateAppointmentForm()">Create Appointment</button>
+
+        <!-- Form for creating an appointment (initially hidden) -->
+        <div id="createAppointmentForm" style="display: none;">
+            <div class="mb-3">
+                <label for="appointmentDate" class="form-label">Date:</label>
+                <input type="date" id="appointmentDate" name="appointmentDate" class="form-control" required>
+            </div>
+            <div class="mb-3">
+                <label for="appointmentTime" class="form-label">Time:</label>
+                <input type="time" id="appointmentTime" name="appointmentTime" class="form-control" required>
+            </div>
+            <div class="mb-3">
+                <label for="dentistSelect" class="form-label">Dentist:</label>
+                <select id="dentistSelect" class="form-select" required>
+                    <!-- Options will be populated here dynamically -->
+                </select>
+            </div>
+            <div class="mb-3">
+                <label for="patientSelect" class="form-label">Patient:</label>
+                <select id="patientSelect" class="form-select" required>
+                    <!-- Options will be populated here dynamically -->
+                </select>
+            </div>
+            <div class="mb-3">
+                <label for="treatmentSelect" class="form-label">Treatment:</label>
+                <select id="treatmentSelect" class="form-select" required>
+                    <!-- Options will be populated here dynamically -->
+                </select>
+            </div>
+            <div class="mb-3">
+                <label for="notes" class="form-label">Notes:</label>
+                <textarea id="notes" name="notes" class="form-control" rows="3"></textarea>
+            </div>
+            <div class="buttons-group">
+                <button id="createAppointmentButton" class="btn btn-success btngrp">Create</button>
+                <button id="updateAppointmentButton" class="btn btn-success btngrp" style="display: none;">Update</button>
+                <button id="cancelAppointmentButton" class="btn btn-secondary btngrp">Cancel</button>
+                <br>
+                <br>
+            </div>
+        </div>
+
+        <div class="appointment-list">
+            <!-- Appointment list items will be populated here dynamically -->
+        </div>
+    </section>
+</div>
+
+<footer>
+    <div class="container">
+        <p>&copy; 2024 Dentist Office. All rights reserved.</p>
+    </div>
+</footer>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // Function to handle sign out
+    function signOut() {
+        // Delete access token from local storage
+        localStorage.removeItem('access_token');
+        // Redirect to index page
+        window.location.href = "/";
+    }
+
+    // Function to fetch appointments and check admin status
+    async function fetchAppointmentsAndCheckAdminStatus() {
+        try {
+            const access_token = localStorage.getItem('access_token');
+            const response = await fetch("/appointments", {
+                    method: "GET",
+                    headers: { "Accept": "application/json", "Authorization": `Bearer ${access_token}` }
+                });
+            if (!response.ok) {
+                throw new Error("Failed to fetch appointments");
+            }
+            const appointments = await response.json();
+            displayAppointments(appointments);
+            
+            // Fetch data for selects (dentist, patient, treatment)
+            await fetchSelectData();
+        } catch (error) {
+            console.error("Error fetching appointments:", error);
+            const appointmentList = document.querySelector('.appointment-list');
+            appointmentList.innerHTML = "<p>Failed to fetch appointments.</p>";
+        }
+    }
+
+// Function to display appointments with patient and dentist names
+async function displayAppointments(appointments) {
+    const appointmentList = document.querySelector('.appointment-list');
+    appointmentList.innerHTML = "";
+    if (appointments.length === 0) {
+        appointmentList.innerHTML = "<p>No appointments available.</p>";
+    } else {
+        for (const appointment of appointments) {
+            // Extract date and time from datetime string
+            const dateTimeParts = appointment.date_and_time.split("T");
+            const date = dateTimeParts[0];
+            const time = dateTimeParts[1].substring(0, 5); // Extract time without milliseconds
+
+            // Fetch patient and dentist names
+            const [patientName, dentistName] = await Promise.all([
+                fetchNameById(appointment.patient_id, 'patients'),
+                fetchNameById(appointment.dentist_id, 'dentists')
+            ]);
+
+            // Construct treatments string
+            const treatments = appointment.treatments.map(treatment => treatment.name).join(", ");
+
+            // Create appointment item
+            const appointmentItem = document.createElement("div");
+            appointmentItem.classList.add("appointment-item");
+            appointmentItem.innerHTML = `
+                <p><strong>Date:</strong> ${date}</p>
+                <p><strong>Time:</strong> ${time}</p>
+                <p><strong>Dentist:</strong> ${dentistName}</p>
+                <p><strong>Patient:</strong> ${patientName}</p>
+                <p><strong>Treatments:</strong> ${treatments}</p>
+                <p><strong>Notes:</strong> ${appointment.notes}</p>
+                <button class="btn btn-danger" onclick="deleteAppointment(${appointment.id})">Delete</button>
+                <button class="btn btn-warning" onclick="updateAppointment(${appointment.id})">Update</button>
+            `;
+            appointmentList.appendChild(appointmentItem);
+        }
+    }
+}
+
+// Function to fetch name by ID from the server
+async function fetchNameById(id, resource) {
+    try {
+        const access_token = localStorage.getItem('access_token');
+        const response = await fetch(`/${resource}/${id}`, {
+                    method: "GET",
+                    headers: { "Accept": "application/json", "Authorization": `Bearer ${access_token}` }
+                });
+        if (!response.ok) {
+            throw new Error(`Failed to fetch ${resource} name for ID ${id}`);
+        }
+        const data = await response.json();
+        return data.name;
+    } catch (error) {
+        console.error(error);
+        return "Unknown";
+    }
+}
+
+
+
+// Function to fetch data for selects (dentist, patient, treatment)
+async function fetchSelectData() {
+    try {
+        const access_token = localStorage.getItem('access_token');
+        // Fetch data for dentist select
+        const dentistResponse = await fetch("/dentists");
+        if (!dentistResponse.ok) {
+            throw new Error("Failed to fetch dentists");
+        }
+        const dentists = await dentistResponse.json();
+        populateSelect("dentistSelect", dentists);
+
+        // Fetch data for patient select
+        const patientResponse = await fetch("/patients", {
+                    method: "GET",
+                    headers: { "Accept": "application/json", "Authorization": `Bearer ${access_token}` }
+                });
+        if (!patientResponse.ok) {
+            throw new Error("Failed to fetch patients");
+        }
+        const patients = await patientResponse.json();
+        populateSelect("patientSelect", patients);
+
+        // Fetch data for treatment select
+        const treatmentResponse = await fetch("/treatments");
+        if (!treatmentResponse.ok) {
+            throw new Error("Failed to fetch treatments");
+        }
+        const treatments = await treatmentResponse.json();
+        populateSelect("treatmentSelect", treatments);
+    } catch (error) {
+        console.error("Error fetching select data:", error);
+        // Handle error
+    }
+}
+
+// Function to populate a select element with options
+function populateSelect(selectId, data) {
+    const select = document.getElementById(selectId);
+    select.innerHTML = ""; // Clear existing options
+    data.forEach(item => {
+        const option = document.createElement("option");
+        option.value = item.id;
+        if (item.specialization) {
+            option.textContent = item.specialization;
+        } else {
+            option.textContent = item.name; // Assuming each item has a 'name' property
+        }
+        select.appendChild(option);
+    });
+}
+
+// Function to create appointment
+async function createAppointment() {
+    try {
+        const appointmentDate = document.getElementById("appointmentDate").value;
+        const appointmentTime = document.getElementById("appointmentTime").value;
+        const dentistId = parseInt(document.getElementById("dentistSelect").value);
+        const patientId = parseInt(document.getElementById("patientSelect").value);
+        const treatmentId = parseInt(document.getElementById("treatmentSelect").value);
+        const notes = document.getElementById("notes").value;
+
+        // Convert the date and time inputs into a Date object
+        const appointmentDateTime = new Date(appointmentDate + "T" + appointmentTime);
+
+        // Format the date and time string in the desired format
+        const datetime = appointmentDateTime.toISOString();
+
+        // Construct the appointment object
+        const appointmentData = {
+            date_and_time: datetime,
+            dentist_id: dentistId,
+            patient_id: patientId,
+            treatment_ids: [treatmentId],
+            notes: notes
+        };
+        const access_token = localStorage.getItem('access_token');
+        // Send POST request to create appointment
+        const response = await fetch("/appointments", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${access_token}`
+            },
+            body: JSON.stringify(appointmentData)
+        });
+
+        if (!response.ok) {
+            throw new Error("Failed to create appointment");
+        }
+
+        // Clear form inputs
+        document.getElementById("appointmentDate").value = "";
+        document.getElementById("appointmentTime").value = "";
+        document.getElementById("dentistSelect").selectedIndex = 0;
+        document.getElementById("patientSelect").selectedIndex = 0;
+        document.getElementById("treatmentSelect").selectedIndex = 0;
+        document.getElementById("notes").value = "";
+
+        // Hide the create appointment form
+        document.getElementById("createAppointmentForm").style.display = "none";
+
+        // Refresh appointments after creating a new one
+        fetchAppointmentsAndCheckAdminStatus();
+    } catch (error) {
+        console.error("Error creating appointment:", error);
+    }
+}
+// Function to check if the current user is an admin
+async function checkAdminStatus() {
+    try {
+        const access_token = localStorage.getItem('access_token');
+        const response = await fetch("/current_user", {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${access_token}`
+            }
+        });
+        if (!response.ok) {
+            throw new Error("Failed to fetch current user data");
+        }
+        const userData = await response.json();
+        const isAdmin = userData.role === "admin";
+        // Show or hide buttons based on admin status
+        if (isAdmin) {
+            return true;
+        } else {
+            return false;
+        }
+    } catch (error) {
+        console.error("Error fetching current user data:", error);
+        // Handle error
+    }
+}
+// Function to delete appointment
+async function deleteAppointment(appointmentId) {
+    try {
+        const access_token = localStorage.getItem('access_token');
+        const response = await fetch(`/appointments/${appointmentId}`, {
+            method: "DELETE",
+            headers: {
+                "Authorization": `Bearer ${access_token}`
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error("Failed to delete appointment");
+        }
+
+        // Appointment deleted successfully, refresh the appointment list
+        fetchAppointmentsAndCheckAdminStatus();
+    } catch (error) {
+        console.error("Error deleting appointment:", error);
+    }
+}
+
+
+// Function to update appointment
+async function updateAppointment(appointmentId) {
+    try {
+        scrollToTop();
+        // Fetch existing appointment data
+        const access_token = localStorage.getItem('access_token');
+        const response = await fetch(`/appointments/${appointmentId}`, {
+            method: "GET",
+            headers: {
+                "Authorization": `Bearer ${access_token}`
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error("Failed to fetch appointment data");
+        }
+
+        const appointmentData = await response.json();
+
+        // Populate the form fields with existing appointment data
+        document.getElementById("appointmentDate").value = appointmentData.date_and_time.slice(0, 10);
+        document.getElementById("appointmentTime").value = appointmentData.date_and_time.slice(11, 16);
+        document.getElementById("dentistSelect").value = appointmentData.dentist_id;
+        document.getElementById("patientSelect").value = appointmentData.patient_id;
+        document.getElementById("treatmentSelect").value = appointmentData.treatments[0].id;
+        document.getElementById("notes").value = appointmentData.notes;
+
+        // Show the create appointment form
+        const createAppointmentForm = document.getElementById("createAppointmentForm");
+        createAppointmentForm.style.display = "block";
+
+        // Hide Create button and show Update button
+        const invisibleCreateBtn = document.getElementById("createAppointmentButton");
+        invisibleCreateBtn.style.display = "none";
+        const invisibleUpdateBtn = document.getElementById("updateAppointmentButton");
+        invisibleUpdateBtn.style.display = "block";
+
+        // When the user clicks the "Update" button
+        document.getElementById("updateAppointmentButton").onclick = async function() {
+            try {
+                // Get updated appointment data from form
+                const updatedDate = document.getElementById("appointmentDate").value;
+                const updatedTime = document.getElementById("appointmentTime").value;
+                const updatedDentistId = parseInt(document.getElementById("dentistSelect").value);
+                const updatedPatientId = parseInt(document.getElementById("patientSelect").value);
+                const updatedTreatmentId = parseInt(document.getElementById("treatmentSelect").value);
+                const updatedNotes = document.getElementById("notes").value;
+
+                // Convert the date and time inputs into a Date object
+                const appointmentDateTime = new Date(updatedDate + "T" + updatedTime);
+
+                // Format the date and time string in the desired format
+                const datetime = appointmentDateTime.toISOString();
+
+                // Construct the updated appointment object
+                const updatedAppointmentData = {
+                    date_and_time: datetime,
+                    dentist_id: updatedDentistId,
+                    patient_id: updatedPatientId,
+                    treatment_ids: [updatedTreatmentId],
+                    notes: updatedNotes
+                };
+
+                // Send PUT request to update appointment
+                const updateResponse = await fetch(`/appointments/${appointmentId}`, {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${access_token}`
+                    },
+                    body: JSON.stringify(updatedAppointmentData)
+                });
+
+                if (!updateResponse.ok) {
+                    throw new Error("Failed to update appointment");
+                }
+
+                // Hide the form after updating appointment
+                createAppointmentForm.style.display = "none";
+
+                // Clear form inputs
+                document.getElementById("appointmentDate").value = "";
+                document.getElementById("appointmentTime").value = "";
+                document.getElementById("dentistSelect").selectedIndex = 0;
+                document.getElementById("patientSelect").selectedIndex = 0;
+                document.getElementById("treatmentSelect").selectedIndex = 0;
+                document.getElementById("notes").value = "";
+
+                // Refresh appointments after updating
+                fetchAppointmentsAndCheckAdminStatus();
+            } catch (error) {
+                console.error("Error updating appointment:", error);
+            }
+        };
+
+        // Change cancel button text to "Cancel"
+        document.getElementById("cancelAppointmentButton").innerText = "Cancel";
+
+        // When the user clicks the "Cancel" button
+        document.getElementById("cancelAppointmentButton").onclick = function() {
+            // Hide the form without updating appointment
+            createAppointmentForm.style.display = "none";
+
+            // Clear form inputs
+            document.getElementById("appointmentDate").value = "";
+            document.getElementById("appointmentTime").value = "";
+            document.getElementById("dentistSelect").selectedIndex = 0;
+            document.getElementById("patientSelect").selectedIndex = 0;
+            document.getElementById("treatmentSelect").selectedIndex = 0;
+            document.getElementById("notes").value = "";
+        };
+    } catch (error) {
+        console.error("Error fetching appointment data:", error);
+    }
+}
+
+
+    // Function to toggle the visibility of the create appointment form
+    function toggleCreateAppointmentForm() {
+        const createAppointmentForm = document.getElementById("createAppointmentForm");
+        // Toggle the display style of the form
+        if (createAppointmentForm.style.display === "none") {
+            createAppointmentForm.style.display = "block";
+        } else {
+            createAppointmentForm.style.display = "none";
+        }
+    }
+
+    // Event listener for the "Create Appointment" button
+    document.getElementById("createAppointmentButton").addEventListener("click", function() {
+        createAppointment();
+    });
+
+    // Event listener for the "Cancel" button in the create appointment form
+    document.getElementById("cancelAppointmentButton").addEventListener("click", function() {
+        // Hide the create appointment form
+        document.getElementById("createAppointmentForm").style.display = "none";
+
+       // Clear form inputs
+        document.getElementById("appointmentDate").value = "";
+        document.getElementById("appointmentTime").value = "";
+        document.getElementById("dentistSelect").selectedIndex = 0;
+        document.getElementById("patientSelect").selectedIndex = 0;
+        document.getElementById("treatmentSelect").selectedIndex = 0;
+        document.getElementById("notes").value = "";
+
+        // Show the Create button and hide the Update button
+        document.getElementById("createAppointmentButton").style.display = "block";
+        document.getElementById("updateAppointmentButton").style.display = "none";
+    });
+
+    // Fetch appointments and check admin status when the page loads
+    fetchAppointmentsAndCheckAdminStatus();
+
+    function scrollToTop() {
+    document.documentElement.scrollTop = 0; // For modern browsers
+    document.body.scrollTop = 0; // For older browsers
+}
+document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const dentistId = urlParams.get('dentist_id');
+    const treatmentId = urlParams.get('treatment_id');
+    const createFormOpen = urlParams.get('create_form_open');
+
+    if (createFormOpen === 'true') {
+        // Show the create appointment form
+        document.getElementById("createAppointmentForm").style.display = "block";
+
+        // Delay setting the dentist select value to ensure options are loaded
+        setTimeout(() => {
+            if (dentistId) {
+                // Set the dentist select value to the provided dentist ID
+                document.getElementById("dentistSelect").value = dentistId;
+            }
+            if (treatmentId) {
+                // Set the treatment select value to the provided treatment ID
+                document.getElementById("treatmentSelect").value = treatmentId;
+            }
+
+        }, 100); // Adjust the delay time as needed
+    }
+});
+// JavaScript code to check if the current user is a super admin and show the navigation item accordingly
+async function checkSuperAdminRole() {
+    try {
+        const access_token = localStorage.getItem('access_token');
+        const response = await fetch("/current_user", {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${access_token}`
+            }
+        });
+        if (!response.ok) {
+            throw new Error("Failed to fetch current user data");
+        }
+        const userData = await response.json();
+        const isSuperAdmin = userData.role === "super_admin";
+        // Show or hide the users navigation item based on the user's role
+        const usersNavItem = document.querySelector(".nav-item.usersLi");
+        if (isSuperAdmin) {
+            usersNavItem.style.display = "block";
+        } else {
+            usersNavItem.style.display = "none";
+        }
+    } catch (error) {
+        console.error("Error fetching current user data:", error);
+        // Handle error
+    }
+}
+
+// Call the function to check the user's role when the page loads
+checkSuperAdminRole();
+
+</script>
+</body>
+</html>

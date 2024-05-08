@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Users</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        /* Additional custom styles */
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            padding-top: 100px; 
+        }
+        header {
+            flex-shrink: 0;
+        }
+        .navbar {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 1000;
+        }
+        .container {
+            padding: 20px;
+        }
+        footer {
+            background-color: #343a40;
+            color: #ffffff;
+            padding: 20px 0;
+            text-align: center;
+            margin-top: auto;
+            width: 100%;
+        }
+        .user-block {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+        }
+
+        .user-break {
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+        .buttons-group {
+            display: flex;
+            flex-direction: row;
+            padding-bottom: 20px;
+        }
+        .btngrp {
+            height: 40px;
+            margin-right: 10px;
+        }
+        .btnupdate {
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <div class="container">
+        <a class="navbar-brand" href="#">User Management</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav">
+                <li class="nav-item">
+                    <a class="nav-link" href="/main_about">About</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/main_patient_card">Patient Card</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/main_dentists">Dentists</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/main_treatments">Treatments</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/main_appointments">Appointments</a>
+                </li>
+                <li class="nav-item usersLi" style="display: none;">
+                    <a class="nav-link" href="/main_users">Users</a>
+                </li>
+                <li class="nav-item">
+                    <button class="btn btn-outline-danger" onclick="signOut()">Sign Out</button>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container">
+    <section id="users" class="bg-white">
+        <div class="container">
+            <h2 class="text-center mb-4">Manage Users</h2>
+            <button id="createUserBtn" class="btn btn-primary mb-3">Create User</button>
+
+            <!-- Form for creating a user (initially hidden) -->
+            <div id="createUserForm" style="display: none;">
+                <div class="mb-3">
+                    <label for="userName" class="form-label">Username:</label>
+                    <input type="text" id="userName" name="userName" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label for="userEmail" class="form-label">Email:</label>
+                    <input type="email" id="userEmail" name="userEmail" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label for="userPassword" class="form-label">Password:</label>
+                    <input type="password" id="userPassword" name="userPassword" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label for="userRole" class="form-label">Role:</label>
+                    <select id="userRole" name="userRole" class="form-select" required>
+                        <option value="admin">Admin</option>
+                        <option value="user">User</option>
+                    </select>
+                </div>
+                <div class="buttons-group">
+                    <button id="createButton" class="btn btn-success btngrp">Create</button>
+                    <button id="cancelButton" class="btn btn-secondary btngrp">Cancel</button>
+                    <br>
+                    <br>
+                </div>
+            </div>
+
+            <div id="users-container" class="user-block"></div>
+        </div>
+    </section>
+</div>
+
+
+<footer>
+    <div class="container">
+        <p>&copy; 2024 User Management. All rights reserved.</p>
+    </div>
+</footer>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+// Function to handle sign out
+function signOut() {
+    // Delete access token from local storage
+    localStorage.removeItem('access_token');
+    // Redirect to index page
+    window.location.href = "/";
+}
+
+// Function to fetch all users
+async function fetchUsers() {
+    try {
+        const access_token = localStorage.getItem('access_token');
+        const response = await fetch("/users", {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${access_token}`
+            }
+        });
+        if (!response.ok) {
+            throw new Error("Failed to fetch users");
+        }
+        const users = await response.json();
+        displayUsers(users);
+    } catch (error) {
+        console.error("Error fetching users:", error);
+        const usersContainer = document.getElementById("users-container");
+        usersContainer.textContent = "Failed to fetch users.";
+    }
+}
+
+// Fetch users when the page loads
+fetchUsers();
+
+// Function to display users
+function displayUsers(users) {
+    const usersContainer = document.getElementById("users-container");
+    usersContainer.innerHTML = "";
+    if (users.length === 0) {
+        usersContainer.textContent = "No users available.";
+    } else {
+        users.forEach(user => {
+            const userElement = document.createElement("div");
+            userElement.innerHTML = `
+                <div class="user-break">
+                    <p><strong>Username:</strong> ${user.username}</p>
+                    <p><strong>Email:</strong> ${user.email}</p>
+                    <p><strong>Role:</strong> ${user.role}</p>
+                    <!-- "Update" and "Delete" buttons (initially invisible) -->
+                    <button class="btn btn-warning btnupdate" onclick="updateUser(${user.id})"">Update</button>
+                    <button class="btn btn-danger btnupdate" onclick="deleteUser(${user.id})"">Delete</button>
+                </div>
+            `;
+            usersContainer.appendChild(userElement);
+        });
+    }
+}
+
+// Function to create user
+async function createUser() {
+    try {
+        const userName = document.getElementById("userName").value;
+        const userEmail = document.getElementById("userEmail").value;
+        const userPassword = document.getElementById("userPassword").value;
+        const userRole = document.getElementById("userRole").value;
+
+        const access_token = localStorage.getItem('access_token');
+        const response = await fetch("/users", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${access_token}`
+            },
+            body: JSON.stringify({
+                username: userName,
+                email: userEmail,
+                password: userPassword,
+                role: userRole
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error("Failed to create user");
+        }
+
+        // Clear input fields
+        document.getElementById("userName").value = "";
+        document.getElementById("userEmail").value = "";
+        document.getElementById("userPassword").value = "";
+
+        // Hide the create user form
+        document.getElementById("createUserForm").style.display = "none";
+
+        // Refresh users after creating a new one
+        fetchUsers();
+    } catch (error) {
+        console.error("Error creating user:", error);
+    }
+}
+
+// Function to delete user
+async function deleteUser(userId) {
+    try {
+        const access_token = localStorage.getItem('access_token');
+        const response = await fetch(`/users/${userId}`, {
+            method: "DELETE",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${access_token}`
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error("Failed to delete user");
+        }
+
+        // Refresh users after deleting one
+        fetchUsers();
+    } catch (error) {
+        console.error("Error deleting user:", error);
+    }
+}
+
+// Function to update user
+async function updateUser(userId) {
+    try {
+        // Fetch existing user data
+        const access_token = localStorage.getItem('access_token');
+        const response = await fetch(`/users/${userId}`);
+
+        if (!response.ok) {
+            throw new Error("Failed to fetch user data");
+        }
+
+        const userData = await response.json();
+
+        // Prompt user to enter new data
+
+        // Send PUT request to update user
+        // Refresh users after updating
+    } catch (error) {
+        console.error("Error updating user:", error);
+    }
+}
+
+// Function to toggle the visibility of the create dentist form
+function toggleCreateUserForm() {
+    const createUserForm = document.getElementById("createUserForm");
+    // Toggle the display style of the form
+    if (createUserForm.style.display === "none") {
+        createUserForm.style.display = "block";
+    } else {
+        createUserForm.style.display = "none";
+    }
+}
+// Event listener for the "Create Dentist" button
+document.getElementById("createUserBtn").addEventListener("click", function() {
+    // Hide Create button and show Update button
+    const invisibleCreateBtn = document.getElementById("createButton");
+    invisibleCreateBtn.style.display = "block";
+    const invisibleUpdateBtn = document.getElementById("updateButton");
+    invisibleUpdateBtn.style.display = "none";
+    toggleCreateUserForm();
+});
+
+// Event listener for the "Create" button
+document.getElementById("createButton").addEventListener("click", function() {
+    createUser();
+});
+
+// Event listener for the "Cancel" button
+document.getElementById("cancelButton").addEventListener("click", function() {
+    // Hide the create dentist form
+    document.getElementById("createUserForm").style.display = "none";
+});
+
+function scrollToTop() {
+    document.documentElement.scrollTop = 0; // For modern browsers
+    document.body.scrollTop = 0; // For older browsers
+}
+
+
+
+
+
+
+
+// JavaScript code to check if the current user is a super admin and show the navigation item accordingly
+async function checkUserRole() {
+    try {
+        const access_token = localStorage.getItem('access_token');
+        const response = await fetch("/current_user", {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${access_token}`
+            }
+        });
+        if (!response.ok) {
+            throw new Error("Failed to fetch current user data");
+        }
+        const userData = await response.json();
+        const isSuperAdmin = userData.role === "super_admin";
+        // Show or hide the users navigation item based on the user's role
+        const usersNavItem = document.querySelector(".nav-item.usersLi");
+        if (isSuperAdmin) {
+            usersNavItem.style.display = "block";
+        } else {
+            usersNavItem.style.display = "none";
+        }
+    } catch (error) {
+        console.error("Error fetching current user data:", error);
+        // Handle error
+    }
+}
+
+// Call the function to check the user's role when the page loads
+checkUserRole();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,40 @@
+@startuml usecase
+!theme crt-green
+
+left to right direction
+skinparam packageStyle rectangle
+
+actor User
+actor Admin
+
+
+rectangle DentistOffice {
+  User --> (Make/Cancel Appointment): <<if loged in as patient>>
+  User -right-> (View Appointment): <<if loged in as patient>>
+
+  
+  Admin -left-> (Add/Remove Dentist)
+  Admin -left-> (View Treatments List)
+  User -right-> (View Treatments List)
+  Admin -left-> (View Dentist Schedule)
+
+  Admin -left-> (Make/Cancel Appointment)
+  Admin -left-> (View Appointments List)
+  Admin -left-> (View Appointment)
+  (Add/Delete Treatment) <-- Admin
+
+  Admin -left-> (Create Patient)
+  User -right-> (Create Patient)
+  Admin -left-> (Delete Patient)
+  User -right-> (Delete Patient): <<if loged in as patient>>
+  Admin -left-> (View Patient/Patients List)
+
+  Admin -left-> (View Dentist/Dentists List)
+  User -right-> (View Dentist/Dentists List)
+  User -right-> (Login as Patient)
+  User -right-> (Login as Admin)
+  (Login as Admin) --> Admin
+
+}
+
+@enduml

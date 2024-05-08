@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dentist Office</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        /* Additional custom styles */
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        header {
+            flex-shrink: 0;
+        }
+        footer {
+            background-color: #343a40;
+            color: #ffffff;
+            padding: 20px 0;
+            text-align: center;
+            margin-top: auto;
+            width: 100%;
+        }
+        .container {
+            max-width: 960px;
+        }
+        .treatment-block {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+        }
+
+        .treatment-break {
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+        .dentist-block {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+        }
+
+        .dentist-break {
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+    </style>
+</head>
+<body>
+
+<header class="p-3 bg-light text-center">
+    <div class="container">
+        <h1 class="mb-0">Odemchuk Dental</h1>
+        <nav class="navbar navbar-expand-lg navbar-light bg-light">
+            <div class="container-fluid">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#about">About</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#dentists">Dentists</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#treatments">Treatments</a>
+                    </li>
+                </ul>
+                <div class="auth-buttons">
+                    <button class="btn btn-primary me-2" onclick="location.href='/signup_page'">Sign Up</button>
+                    <button class="btn btn-outline-primary" onclick="location.href='/signin_page'">Sign In</button>
+                </div>
+            </div>
+        </nav>
+    </div>
+</header>
+
+<section id="about" class="bg-white">
+    <div class="container">
+        <h2 class="text-center mb-4">About Us</h2>
+        <p>Welcome to Odemchuk Dental Clinic, where your smile is our top priority!<br>Nestled in the heart of the city, our clinic offers state-of-the-art dental care in a warm and inviting atmosphere.<br><br>At Bright Smiles, we believe in creating beautiful, healthy smiles that last a lifetime. Our team of experienced dentists and caring staff are dedicated to providing personalized treatment plans tailored to meet your unique needs and goals.<br><br>From routine cleanings and check-ups to advanced cosmetic and restorative procedures, we offer a comprehensive range of services to ensure your oral health and confidence are always at their best.<br><br>We understand that visiting the dentist can be a daunting experience for some, which is why we strive to create a relaxing and comfortable environment for all our patients. With soothing music, gentle care, and a friendly smile, we'll make sure your time with us is as pleasant as possible.<br><br>Thank you for choosing Odemchuk Dental Clinic for your dental needs. We look forward to helping you achieve the bright, beautiful smile you deserve!</p>
+    </div>
+</section>
+
+<section id="dentists" class="bg-wight">
+    <div class="container">
+        <h2 class="text-center mb-4">Our Dentists</h2>
+        <div id="dentists-container"></div>
+    </div>
+</section>
+
+<section id="treatments" class="bg-white">
+    <div class="container">
+        <h2 class="text-center mb-4">Our Treatments</h2>
+        <div id="treatments-container"  class="treatment-block"></div>
+    </div>
+</section>
+
+<footer>
+    <div class="container">
+        <p>&copy; 2024 Dentist Office. All rights reserved.</p>
+    </div>
+</footer>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            // Attach event listeners to navigation links
+            document.querySelectorAll("nav ul a").forEach(link => {
+                link.addEventListener("click", function(event) {
+                    event.preventDefault(); // Prevent default anchor behavior
+
+                    // Get the target section id from the href attribute
+                    const targetSectionId = this.getAttribute("href").substring(1);
+
+                    // Hide all sections
+                    document.querySelectorAll("section").forEach(section => {
+                        section.style.display = "none";
+                    });
+
+                    // Show the target section
+                    document.getElementById(targetSectionId).style.display = "block";
+
+                    // If the section is dentists or treatments, fetch and display the data
+                    if (targetSectionId === "dentists") {
+                        fetchDentists();
+                    } else if (targetSectionId === "treatments") {
+                        fetchTreatments();
+                    }
+                });
+            });
+
+            // Function to fetch all dentists
+            async function fetchDentists() {
+                try {
+                    const response = await fetch("/dentists");
+                    if (!response.ok) {
+                        throw new Error("Failed to fetch dentists");
+                    }
+                    const dentists = await response.json();
+                    displayDentists(dentists);
+                } catch (error) {
+                    console.error("Error fetching dentists:", error);
+                    const dentistsContainer = document.getElementById("dentists-container");
+                    dentistsContainer.textContent = "Failed to fetch dentists.";
+                }
+            }
+
+            // Function to fetch all treatments
+            async function fetchTreatments() {
+                try {
+                    const response = await fetch("/treatments");
+                    if (!response.ok) {
+                        throw new Error("Failed to fetch treatments");
+                    }
+                    const treatments = await response.json();
+                    displayTreatments(treatments);
+                } catch (error) {
+                    console.error("Error fetching treatments:", error);
+                    const treatmentsContainer = document.getElementById("treatments-container");
+                    treatmentsContainer.textContent = "Failed to fetch treatments.";
+                }
+            }
+
+            // Function to display dentists
+            function displayDentists(dentists) {
+                const dentistsContainer = document.getElementById("dentists-container");
+                dentistsContainer.innerHTML = "";
+                if (dentists.length === 0) {
+                    dentistsContainer.textContent = "No dentists available.";
+                } else {
+                    dentists.forEach(dentist => {
+                        const dentistElement = document.createElement("div");
+                        dentistElement.innerHTML = `
+                            <div class="dentist-break">
+                            <p><strong>Name:</strong> ${dentist.name}</p>
+                            <p><strong>Specialization:</strong> ${dentist.specialization}</p>
+                            <p><strong>Phone Number:</strong> ${dentist.phone_number}</p>
+                            <p><strong>Email:</strong> ${dentist.email}</p>
+                            <p>--------------------------------------<p>
+                            </div>
+                        `;
+                        dentistsContainer.appendChild(dentistElement);
+                    });
+                }
+            }
+
+            
+    // Function to display treatments
+    function displayTreatments(treatments) {
+        const treatmentsContainer = document.getElementById("treatments-container");
+        treatmentsContainer.innerHTML = "";
+        if (treatments.length === 0) {
+            treatmentsContainer.textContent = "No treatments available.";
+        } else {
+            treatments.forEach(treatment => {
+                const treatmentElement = document.createElement("div");
+                treatmentElement.innerHTML = `
+                    <div class="treatment-break">
+                    <p><strong>Name:</strong> ${treatment.name}</p>
+                    <p><strong>Description:</strong> ${treatment.description}</p>
+                    <p><strong>Price:</strong> ${treatment.price}$</p>
+                    <p>--------------------------------------<p>
+                    </div>
+                `;
+                treatmentsContainer.appendChild(treatmentElement);
+            });
+        }
+    }
+
+            // Function to display the About section
+            function displayAboutSection() {
+                document.getElementById("about").style.display = "block";
+                document.getElementById("dentists").style.display = "none";
+                document.getElementById("treatments").style.display = "none";
+            }
+
+            // Fetch dentists and treatments when the page loads
+            fetchDentists();
+            fetchTreatments();
+
+            // Display the About section initially
+            displayAboutSection();
+
+        });
+    </script>
+
+</body>
+</html>

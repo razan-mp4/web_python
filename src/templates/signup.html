@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        /* Additional custom styles */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .back-button {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background-color: transparent;
+            border: none;
+            color: #4f4f4f;
+            cursor: pointer;
+            font-size: 15px;
+        }
+        .back-button:hover {
+            color: #cc0000;
+            background-color: transparent;
+        }
+    </style>
+</head>
+<body>
+    <button class="back-button btn btn-outline-secondary" onclick="window.history.back()">← get back</button>
+
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-6">
+                <div class="card mt-5">
+                    <div class="card-body">
+                        <h1 class="text-center mb-4">Sign Up</h1>
+                        <form id="signup-form">
+                            <div class="mb-3">
+                                <label for="username" class="form-label">Username:</label>
+                                <input type="text" id="username" name="username" class="form-control" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Email:</label>
+                                <input type="email" id="email" name="email" class="form-control" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="password" class="form-label">Password:</label>
+                                <input type="password" id="password" name="password" class="form-control" required>
+                            </div>
+                            <div class="mb-3 additional-fields">
+                                <label for="name" class="form-label">Name:</label>
+                                <input type="text" id="name" name="name" class="form-control">
+                            </div>
+                            <div class="mb-3 additional-fields">
+                                <label for="address" class="form-label">Address:</label>
+                                <input type="text" id="address" name="address" class="form-control">
+                            </div>
+                            <div class="mb-3 additional-fields">
+                                <label for="phone_number" class="form-label">Phone Number:</label>
+                                <input type="text" id="phone_number" name="phone_number" class="form-control">
+                            </div>
+                            <div class="mb-3 additional-fields">
+                                <label for="date_of_birth" class="form-label">Date of Birth:</label>
+                                <input type="date" id="date_of_birth" name="date_of_birth" class="form-control">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">User Type:</label>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" id="admin" name="userType" value="admin" required>
+                                    <label class="form-check-label" for="admin">Admin</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" id="user" name="userType" value="user" required>
+                                    <label class="form-check-label" for="user">User</label>
+                                </div>
+                            </div>
+                            <div class="text-center">
+                                <button type="submit" class="btn btn-success">Sign Up</button>
+                            </div>
+                        </form>
+                        <div id="message" class="text-center mt-3"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async function () {
+            const form = document.getElementById('signup-form');
+            const messageDiv = document.getElementById('message');
+            const userRadio = document.getElementById('user');
+            const adminRadio = document.getElementById('admin');
+            const additionalFields = document.querySelectorAll('.additional-fields');
+
+            // Hide additional fields initially
+            additionalFields.forEach(field => {
+                field.style.display = 'none';
+            });
+
+            // Function to show or hide additional fields based on user selection
+            function toggleAdditionalFields() {
+                if (userRadio.checked) {
+                    additionalFields.forEach(field => {
+                        field.style.display = 'block';
+                    });
+                } else {
+                    additionalFields.forEach(field => {
+                        field.style.display = 'none';
+                    });
+                }
+            }
+
+        // Event listener for radio button change
+        userRadio.addEventListener('change', toggleAdditionalFields);
+        adminRadio.addEventListener('change', toggleAdditionalFields);
+
+            form.addEventListener('submit', async function (event) {
+                event.preventDefault();
+    
+                const username = form.elements['username'].value;
+                const email = form.elements['email'].value;
+                const password = form.elements['password'].value;
+                const name = form.elements['name'].value;
+                const address = form.elements['address'].value;
+                const phone_number = form.elements['phone_number'].value;
+                const date_of_birth = form.elements['date_of_birth'].value;
+                const userType = form.elements['userType'].value;
+    
+                // Post basic user information to /signup endpoint
+                const signUpResponse = await signUpUser(username, email, password, userType);
+                if (signUpResponse.ok) {
+                    const userData = await signUpResponse.json(); // Get the user data from the response
+                    const userId = userData.id; // Get the user ID
+                    const userRole = userData.role;
+    
+                    // Check if the user is of type 'user'
+                    if (userRole === 'user') {
+                        // Post additional patient information to /patient endpoint
+                        const patientResponse = await createPatient(name, address, phone_number, date_of_birth, userId);
+                        if (!patientResponse.ok) {
+                            messageDiv.textContent = 'Signup failed. Problems with Patient. Please try again.';
+                            return;
+                        }
+                    }
+    
+                    messageDiv.textContent = 'Signup successful!';
+                    // Automatically sign in after sign up
+                    const signInResponse = await signInUser(username, password);
+                    if (signInResponse) {
+                        localStorage.setItem('access_token', signInResponse.access_token);
+                        console.log(signInResponse.access_token);
+                        window.location.href = '/main_about';
+                    } else {
+                        messageDiv.textContent = 'Sign in failed after sign up. Please try again.';
+                    }
+                } else {
+                    messageDiv.textContent = 'Signup failed. Please try again.';
+                }
+            });
+    
+            async function signUpUser(username, email, password, userType) {
+                return await fetch('/signup', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: username,
+                        email: email,
+                        password: password,
+                        role: userType,
+                        is_active: 1
+                    })
+                });
+            }
+    
+            async function signInUser(username, password) {
+                const formData = new URLSearchParams();
+                formData.append('grant_type', '');
+                formData.append('username', username);
+                formData.append('password', password);
+                formData.append('scope', '');
+                formData.append('client_id', '');
+                formData.append('client_secret', '');
+    
+                const response = await fetch('/token', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: formData
+                });
+    
+                if (response.ok) {
+                    const data = await response.json();
+                    return data; // Return the token or other data
+                } else {
+                    throw new Error('Failed to sign in');
+                }
+            }
+    
+            async function createPatient(name, address, phone_number, date_of_birth, user_id) {
+                return await fetch('/patients', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: name,
+                        address: address,
+                        phone_number: phone_number,
+                        date_of_birth: date_of_birth,
+                        user_id: user_id
+                    })
+                });
+            }
+        });
+    </script>
+</body>
+</html>

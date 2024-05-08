@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Our Treatments</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        /* Additional custom styles */
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            padding-top: 100px; 
+        }
+        header {
+            flex-shrink: 0;
+        }
+        .navbar {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 1000;
+        }
+        .container {
+            padding: 20px;
+        }
+        footer {
+            background-color: #343a40;
+            color: #ffffff;
+            padding: 20px 0;
+            text-align: center;
+            margin-top: auto;
+            width: 100%;
+        }
+
+        .treatment-block {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+        }
+
+        .treatment-break {
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+        .buttons-group {
+            display: flex;
+            flex-direction: row;
+            padding-bottom: 20px;
+        }
+        .btngrp {
+            height: 40px;
+            margin-right: 10px;
+        }
+        .btnupdate {
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <div class="container">
+        <a class="navbar-brand" href="#">Odemchuk Dental</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav">
+                <li class="nav-item">
+                    <a class="nav-link" href="/main_about">About</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/main_patient_card">Patient Card</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/main_dentists">Dentists</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/main_treatments">Treatments</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/main_appointments">Appointments</a>
+                </li>
+                <li class="nav-item usersLi" style="display: none;">
+                    <a class="nav-link" href="/main_users">Users</a>
+                </li>
+                <li class="nav-item">
+                    <button class="btn btn-outline-danger" onclick="signOut()">Sign Out</button>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container">
+    <section id="treatments" class="bg-white">
+        <div class="container">
+            <h2 class="text-center mb-4">Our Treatments</h2>
+            <button id="createTreatmentBtn" class="btn btn-primary mb-3">Create Treatment</button>
+
+            <!-- Form for creating a treatment (initially hidden) -->
+            <div id="createTreatmentForm" style="display: none;">
+                <div class="mb-3">
+                    <label for="treatmentName" class="form-label">Treatment Name:</label>
+                    <input type="text" id="treatmentName" name="treatmentName" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label for="treatmentDescription" class="form-label">Description:</label>
+                    <textarea id="treatmentDescription" name="treatmentDescription" class="form-control" rows="3" required></textarea>
+                </div>
+                <div class="mb-3">
+                    <label for="treatmentPrice" class="form-label">Price:</label>
+                    <input type="number" id="treatmentPrice" name="treatmentPrice" class="form-control" step="0.01" min="0" required>
+                </div>
+                <div class="buttons-group">
+                    <button id="createButton" class="btn btn-success btngrp">Create</button>
+                    <button id="updateButton" class="btn btn-success btngrp" style="display: none;">Update</button>
+                    <button id="cancelButton" class="btn btn-secondary btngrp">Cancel</button>
+                    <br>
+                    <br>
+                </div>
+            </div>
+
+            <div id="treatments-container"  class="treatment-block"></div>
+        </div>
+    </section>
+</div>
+
+
+<footer>
+    <div class="container">
+        <p>&copy; 2024 Dentist Office. All rights reserved.</p>
+    </div>
+</footer>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // Function to handle sign out
+    function signOut() {
+        // Delete access token from local storage
+        localStorage.removeItem('access_token');
+        // Redirect to index page
+        window.location.href = "/";
+    }
+
+    // Function to fetch all treatments and then check admin status
+    async function fetchTreatmentsAndCheckAdminStatus() {
+        try {
+            const response = await fetch("/treatments");
+            if (!response.ok) {
+                throw new Error("Failed to fetch treatments");
+            }
+            const treatments = await response.json();
+            displayTreatments(treatments);
+            // Check admin status after treatments are fetched and displayed
+            await checkAdminStatus();
+        } catch (error) {
+            console.error("Error fetching treatments:", error);
+            const treatmentsContainer = document.getElementById("treatments-container");
+            treatmentsContainer.textContent = "Failed to fetch treatments.";
+        }
+    }
+
+    // Fetch treatments and check admin status when the page loads
+    fetchTreatmentsAndCheckAdminStatus();
+
+
+    // Function to display treatments
+    function displayTreatments(treatments) {
+        const treatmentsContainer = document.getElementById("treatments-container");
+        treatmentsContainer.innerHTML = "";
+        if (treatments.length === 0) {
+            treatmentsContainer.textContent = "No treatments available.";
+        } else {
+            treatments.forEach(treatment => {
+                const treatmentElement = document.createElement("div");
+                treatmentElement.innerHTML = `
+                    <dic class="treatment-break">
+                    <p><strong>Name:</strong> ${treatment.name}</p>
+                    <p><strong>Description:</strong> ${treatment.description}</p>
+                    <p><strong>Price:</strong> ${treatment.price}$</p>
+                    <!-- "Update" and "Delete" buttons (initially invisible) -->
+                    <button class="btn btn-warning btnupdate" onclick="updateTreatment(${treatment.id})" style="display: none;">Update</button>
+                    <button class="btn btn-danger btnupdate" onclick="deleteTreatment(${treatment.id})" style="display: none;">Delete</button>
+                    <p>--------------------------------------<p>
+                    <button class="btn btn-success btnupdate" onclick="createAppointment(${treatment.id})">Create Appointment</button>
+                    </div>
+                `;
+                treatmentsContainer.appendChild(treatmentElement);
+            });
+        }
+    }
+
+    // Function to create treatment
+    async function createTreatment() {
+        try {
+            const treatmentName = document.getElementById("treatmentName").value;
+            const treatmentDescription = document.getElementById("treatmentDescription").value;
+            const treatmentPrice = parseFloat(document.getElementById("treatmentPrice").value);
+
+            const access_token = localStorage.getItem('access_token');
+            const response = await fetch("/treatments", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${access_token}`
+                },
+                body: JSON.stringify({
+                    name: treatmentName,
+                    description: treatmentDescription,
+                    price: treatmentPrice
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error("Failed to create treatment");
+            }
+
+        // Clear input fields
+        document.getElementById("treatmentName").value = "";
+        document.getElementById("treatmentDescription").value = "";
+        document.getElementById("treatmentPrice").value = "";
+
+        // Hide the create treatment form
+        document.getElementById("createTreatmentForm").style.display = "none";
+
+        // Refresh treatments after creating a new one
+        fetchTreatmentsAndCheckAdminStatus();
+        } catch (error) {
+            console.error("Error creating treatment:", error);
+        }
+    }
+
+    // Function to delete treatment
+    async function deleteTreatment(treatmentId) {
+        try {
+            const access_token = localStorage.getItem('access_token');
+            const response = await fetch(`/treatments/${treatmentId}`, {
+                method: "DELETE",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${access_token}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error("Failed to delete treatment");
+            }
+
+            // Refresh treatments after deleting one
+            fetchTreatmentsAndCheckAdminStatus();
+        } catch (error) {
+            console.error("Error deleting treatment:", error);
+        }
+    }
+
+    // Function to check if the current user is an admin
+    async function checkAdminStatus() {
+        try {
+            const access_token = localStorage.getItem('access_token');
+            const response = await fetch("/current_user", {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${access_token}`
+                }
+            });
+            if (!response.ok) {
+                throw new Error("Failed to fetch current user data");
+            }
+            const userData = await response.json();
+            const isAdmin = userData.role === "admin";
+            // Show or hide buttons based on admin status
+            if (isAdmin) {
+                document.getElementById("createTreatmentBtn").style.display = "block"; // Show "Create Treatment" button
+                const updateButtons = document.querySelectorAll(".btn.btn-warning"); // Select all "Update" buttons
+                const deleteButtons = document.querySelectorAll(".btn.btn-danger"); // Select all "Delete" buttons
+                updateButtons.forEach(button => button.style.display = "block"); // Show all "Update" buttons
+                deleteButtons.forEach(button => button.style.display = "block"); // Show all "Delete" buttons
+            } else {
+                document.getElementById("createTreatmentBtn").style.display = "none"; // Hide "Create Treatment" button
+                const updateButtons = document.querySelectorAll(".btn.btn-warning"); // Select all "Update" buttons
+                const deleteButtons = document.querySelectorAll(".btn.btn-danger"); // Select all "Delete" buttons
+                updateButtons.forEach(button => button.style.display = "none"); // Hide all "Update" buttons
+                deleteButtons.forEach(button => button.style.display = "none"); // Hide all "Delete" buttons
+            }
+        } catch (error) {
+            console.error("Error fetching current user data:", error);
+            // Handle error
+        }
+    }
+    
+    // Function to toggle the visibility of the create treatment form
+    function toggleCreateTreatmentForm() {
+        const createTreatmentForm = document.getElementById("createTreatmentForm");
+        // Toggle the display style of the form
+        if (createTreatmentForm.style.display === "none") {
+            createTreatmentForm.style.display = "block";
+        } else {
+            createTreatmentForm.style.display = "none";
+        }
+    }
+    
+    // Function to update treatment
+    async function updateTreatment(treatmentId) {
+        try {
+            scrollToTop()
+            // Fetch existing treatment data
+            const access_token = localStorage.getItem('access_token');
+            const response = await fetch(`/treatments/${treatmentId}`);
+        
+            if (!response.ok) {
+                throw new Error("Failed to fetch treatment data");
+            }
+        
+            const treatmentData = await response.json();
+        
+            // Populate the form fields with existing treatment data
+            document.getElementById("treatmentName").value = treatmentData.name;
+            document.getElementById("treatmentDescription").value = treatmentData.description;
+            document.getElementById("treatmentPrice").value = treatmentData.price;
+
+            // Show the create treatment form
+            const createTreatmentForm = document.getElementById("createTreatmentForm");
+            createTreatmentForm.style.display = "block";
+
+            // Hide Create button and show Update button
+            const invisibleCreateBtn = document.getElementById("createButton")
+            invisibleCreateBtn.style.display = "none"
+            const invisibleUpdateBtn = document.getElementById("updateButton")
+            invisibleUpdateBtn.style.display = "block"
+
+            // When the user clicks the "Update" button
+            document.getElementById("updateButton").onclick = async function() {
+                try {
+                    // Get updated treatment data from form
+                    const updatedName = document.getElementById("treatmentName").value;
+                    const updatedDescription = document.getElementById("treatmentDescription").value;
+                    const updatedPrice = parseFloat(document.getElementById("treatmentPrice").value);
+
+                    // Send PUT request to update treatment
+                    const updateResponse = await fetch(`/treatments/${treatmentId}`, {
+                        method: "PUT",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "Authorization": `Bearer ${access_token}`
+                        },
+                        body: JSON.stringify({
+                            name: updatedName,
+                            description: updatedDescription,
+                            price: updatedPrice
+                        })
+                    });
+
+                    if (!updateResponse.ok) {
+                        throw new Error("Failed to update treatment");
+                    }
+
+                    // Hide the form after updating treatment
+                    createTreatmentForm.style.display = "none";
+
+                    // Clear form inputs
+                    document.getElementById("treatmentName").value = "";
+                    document.getElementById("treatmentDescription").value = "";
+                    document.getElementById("treatmentPrice").value = "";
+
+                    // Refresh treatments after updating
+                    fetchTreatmentsAndCheckAdminStatus();
+                } catch (error) {
+                    console.error("Error updating treatment:", error);
+                }
+            };
+
+            // Change cancel button text to "Cancel"
+            document.getElementById("cancelButton").innerText = "Cancel";
+
+            // When the user clicks the "Cancel" button
+            document.getElementById("cancelButton").onclick = function() {
+                // Hide the form without updating treatment
+                createTreatmentForm.style.display = "none";
+
+                // Clear form inputs
+                document.getElementById("treatmentName").value = "";
+                document.getElementById("treatmentDescription").value = "";
+                document.getElementById("treatmentPrice").value = "";
+            };
+        } catch (error) {
+            console.error("Error fetching treatment data:", error);
+        }
+    }
+
+
+    // Event listener for the "Create Treatment" button
+    document.getElementById("createTreatmentBtn").addEventListener("click", function() {
+            // Hide Create button and show Update button
+            const invisibleCreateBtn = document.getElementById("createButton")
+            invisibleCreateBtn.style.display = "block"
+            const invisibleUpdateBtn = document.getElementById("updateButton")
+            invisibleUpdateBtn.style.display = "none"
+        toggleCreateTreatmentForm();
+    });
+    
+    // Event listener for the "Create" button
+    document.getElementById("createButton").addEventListener("click", function() {
+        createTreatment();
+    });
+
+    // Event listener for the "Cancel" button
+    document.getElementById("cancelButton").addEventListener("click", function() {
+            // Hide Create button and show Update button
+            const invisibleCreateBtn = document.getElementById("createButton")
+            invisibleCreateBtn.style.display = "block"
+            const invisibleUpdateBtn = document.getElementById("updateButton")
+            invisibleUpdateBtn.style.display = "none"
+        // Hide the create treatment form
+        document.getElementById("createTreatmentForm").style.display = "none";
+    });
+
+    function scrollToTop() {
+        document.documentElement.scrollTop = 0; // For modern browsers
+        document.body.scrollTop = 0; // For older browsers
+    }
+
+// Function to create appointment
+function createAppointment(treatmentId) {
+    // Construct the URL with the treatment ID and open the create appointment form
+    const appointmentPageUrl = `/main_appointments?treatment_id=${treatmentId}&create_form_open=true`;
+    // Redirect the user to the appointment page with the treatment ID and create apointment form
+    window.location.href = appointmentPageUrl;
+}
+// JavaScript code to check if the current user is a super admin and show the navigation item accordingly
+async function checkUserRole() {
+    try {
+        const access_token = localStorage.getItem('access_token');
+        const response = await fetch("/current_user", {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${access_token}`
+            }
+        });
+        if (!response.ok) {
+            throw new Error("Failed to fetch current user data");
+        }
+        const userData = await response.json();
+        const isSuperAdmin = userData.role === "super_admin";
+        // Show or hide the users navigation item based on the user's role
+        const usersNavItem = document.querySelector(".nav-item.usersLi");
+        if (isSuperAdmin) {
+            usersNavItem.style.display = "block";
+        } else {
+            usersNavItem.style.display = "none";
+        }
+    } catch (error) {
+        console.error("Error fetching current user data:", error);
+        // Handle error
+    }
+}
+
+// Call the function to check the user's role when the page loads
+checkUserRole();
+
+</script>
+
+</body>
+</html>

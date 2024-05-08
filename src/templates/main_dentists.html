@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Our Dentists</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        /* Additional custom styles */
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            padding-top: 100px; 
+        }
+        header {
+            flex-shrink: 0;
+        }
+        .navbar {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 1000;
+        }
+        .container {
+            padding: 20px;
+        }
+        footer {
+            background-color: #343a40;
+            color: #ffffff;
+            padding: 20px 0;
+            text-align: center;
+            margin-top: auto;
+            width: 100%;
+        }
+        .dentist-block {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+        }
+
+        .dentist-break {
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+        .buttons-group {
+            display: flex;
+            flex-direction: row;
+            padding-bottom: 20px;
+        }
+        .btngrp {
+            height: 40px;
+            margin-right: 10px;
+        }
+        .btnupdate {
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <div class="container">
+        <a class="navbar-brand" href="#">Odemchuk Dental</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav">
+                <li class="nav-item">
+                    <a class="nav-link" href="/main_about">About</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/main_patient_card">Patient Card</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/main_dentists">Dentists</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/main_treatments">Treatments</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/main_appointments">Appointments</a>
+                </li>
+                <li class="nav-item usersLi" style="display: none;">
+                    <a class="nav-link" href="/main_users">Users</a>
+                </li>
+                <li class="nav-item">
+                    <button class="btn btn-outline-danger" onclick="signOut()">Sign Out</button>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container">
+    <section id="dentists" class="bg-white">
+        <div class="container">
+            <h2 class="text-center mb-4">Our Dentists</h2>
+            <button id="createDentistBtn" class="btn btn-primary mb-3">Create Dentist</button>
+
+            <!-- Form for creating a dentist (initially hidden) -->
+            <div id="createDentistForm" style="display: none;">
+                <div class="mb-3">
+                    <label for="dentistName" class="form-label">Dentist Name:</label>
+                    <input type="text" id="dentistName" name="dentistName" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label for="dentistSpecialization" class="form-label">Specialization:</label>
+                    <input type="text" id="dentistSpecialization" name="dentistSpecialization" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label for="dentistPhoneNumber" class="form-label">Phone Number:</label>
+                    <input type="text" id="dentistPhoneNumber" name="dentistPhoneNumber" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label for="dentistEmail" class="form-label">Email:</label>
+                    <input type="email" id="dentistEmail" name="dentistEmail" class="form-control" required>
+                </div>
+                <div class="buttons-group">
+                    <button id="createButton" class="btn btn-success btngrp">Create</button>
+                    <button id="updateButton" class="btn btn-success btngrp" style="display: none;">Update</button>
+                    <button id="cancelButton" class="btn btn-secondary btngrp">Cancel</button>
+                    <br>
+                    <br>
+                </div>
+            </div>
+
+            <div id="dentists-container" class="dentist-block"></div>
+        </div>
+    </section>
+</div>
+
+
+<footer>
+    <div class="container">
+        <p>&copy; 2024 Dentist Office. All rights reserved.</p>
+    </div>
+</footer>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+// Function to handle sign out
+function signOut() {
+    // Delete access token from local storage
+    localStorage.removeItem('access_token');
+    // Redirect to index page
+    window.location.href = "/";
+}
+
+// Function to fetch all dentists and then check admin status
+async function fetchDentistsAndCheckAdminStatus() {
+    try {
+        const response = await fetch("/dentists");
+        if (!response.ok) {
+            throw new Error("Failed to fetch dentists");
+        }
+        const dentists = await response.json();
+        displayDentists(dentists);
+        // Check admin status after dentists are fetched and displayed
+        await checkAdminStatus();
+    } catch (error) {
+        console.error("Error fetching dentists:", error);
+        const dentistsContainer = document.getElementById("dentists-container");
+        dentistsContainer.textContent = "Failed to fetch dentists.";
+    }
+}
+
+// Fetch dentists and check admin status when the page loads
+fetchDentistsAndCheckAdminStatus();
+
+
+// Function to display dentists
+function displayDentists(dentists) {
+    const dentistsContainer = document.getElementById("dentists-container");
+    dentistsContainer.innerHTML = "";
+    if (dentists.length === 0) {
+        dentistsContainer.textContent = "No dentists available.";
+    } else {
+        dentists.forEach(dentist => {
+            const dentistElement = document.createElement("div");
+            dentistElement.innerHTML = `
+                <div class="dentist-break">
+                    <p><strong>Name:</strong> ${dentist.name}</p>
+                    <p><strong>Specialization:</strong> ${dentist.specialization}</p>
+                    <p><strong>Phone Number:</strong> ${dentist.phone_number}</p>
+                    <p><strong>Email:</strong> ${dentist.email}</p>
+                    <!-- "Update" and "Delete" buttons (initially invisible) -->
+                    <button class="btn btn-warning btnupdate" onclick="updateDentist(${dentist.id})" style="display: none;">Update</button>
+                    <button class="btn btn-danger btnupdate" onclick="deleteDentist(${dentist.id})" style="display: none;">Delete</button>
+                    <p>--------------------------------------------<p>
+                    <button class="btn btn-success btnupdate" onclick="createAppointment(${dentist.id})">Create Appointment</button>
+                </div>
+            `;
+            dentistsContainer.appendChild(dentistElement);
+        });
+    }
+}
+// Function to create dentist
+async function createDentist() {
+    try {
+        const dentistName = document.getElementById("dentistName").value;
+        const dentistSpecialization = document.getElementById("dentistSpecialization").value;
+        const dentistPhoneNumber = document.getElementById("dentistPhoneNumber").value;
+        const dentistEmail = document.getElementById("dentistEmail").value;
+
+        const access_token = localStorage.getItem('access_token');
+        const response = await fetch("/dentists", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${access_token}`
+            },
+            body: JSON.stringify({
+                name: dentistName,
+                specialization: dentistSpecialization,
+                phone_number: dentistPhoneNumber,
+                email: dentistEmail
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error("Failed to create dentist");
+        }
+
+        // Clear input fields
+        document.getElementById("dentistName").value = "";
+        document.getElementById("dentistSpecialization").value = "";
+        document.getElementById("dentistPhoneNumber").value = "";
+        document.getElementById("dentistEmail").value = "";
+
+        // Hide the create dentist form
+        document.getElementById("createDentistForm").style.display = "none";
+
+        // Refresh dentists after creating a new one
+        fetchDentistsAndCheckAdminStatus();
+    } catch (error) {
+        console.error("Error creating dentist:", error);
+    }
+}
+
+// Function to delete dentist
+async function deleteDentist(dentistId) {
+    try {
+        const access_token = localStorage.getItem('access_token');
+        const response = await fetch(`/dentists/${dentistId}`, {
+            method: "DELETE",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${access_token}`
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error("Failed to delete dentist");
+        }
+
+        // Refresh dentists after deleting one
+        fetchDentistsAndCheckAdminStatus();
+    } catch (error) {
+        console.error("Error deleting dentist:", error);
+    }
+}
+
+
+
+// Function to check if the current user is an admin
+async function checkAdminStatus() {
+    try {
+        const access_token = localStorage.getItem('access_token');
+        const response = await fetch("/current_user", {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${access_token}`
+            }
+        });
+        if (!response.ok) {
+            throw new Error("Failed to fetch current user data");
+        }
+        const userData = await response.json();
+        const isAdmin = userData.role === "admin";
+        // Show or hide buttons based on admin status
+        if (isAdmin) {
+            document.getElementById("createDentistBtn").style.display = "block"; // Show "Create Dentist" button
+            const updateButtons = document.querySelectorAll(".btn.btn-warning"); // Select all "Update" buttons
+            const deleteButtons = document.querySelectorAll(".btn.btn-danger"); // Select all "Delete" buttons
+            updateButtons.forEach(button => button.style.display = "block"); // Show all "Update" buttons
+            deleteButtons.forEach(button => button.style.display = "block"); // Show all "Delete" buttons
+        } else {
+            document.getElementById("createDentistBtn").style.display = "none"; // Hide "Create Dentist" button
+            const updateButtons = document.querySelectorAll(".btn.btn-warning"); // Select all "Update" buttons
+            const deleteButtons = document.querySelectorAll(".btn.btn-danger"); // Select all "Delete" buttons
+            updateButtons.forEach(button => button.style.display = "none"); // Hide all "Update" buttons
+            deleteButtons.forEach(button => button.style.display = "none"); // Hide all "Delete" buttons
+        }
+    } catch (error) {
+        console.error("Error fetching current user data:", error);
+        // Handle error
+    }
+}
+
+// Function to toggle the visibility of the create dentist form
+function toggleCreateDentistForm() {
+    const createDentistForm = document.getElementById("createDentistForm");
+    // Toggle the display style of the form
+    if (createDentistForm.style.display === "none") {
+        createDentistForm.style.display = "block";
+    } else {
+        createDentistForm.style.display = "none";
+    }
+}
+// Function to update dentist
+async function updateDentist(dentistId) {
+    try {
+        scrollToTop();
+        // Fetch existing dentist data
+        const access_token = localStorage.getItem('access_token');
+        const response = await fetch(`/dentists/${dentistId}`);
+
+        if (!response.ok) {
+            throw new Error("Failed to fetch dentist data");
+        }
+
+        const dentistData = await response.json();
+
+        // Populate the form fields with existing dentist data
+        document.getElementById("dentistName").value = dentistData.name;
+        document.getElementById("dentistSpecialization").value = dentistData.specialization;
+        document.getElementById("dentistPhoneNumber").value = dentistData.phone_number;
+        document.getElementById("dentistEmail").value = dentistData.email;
+
+        // Show the create dentist form
+        const createDentistForm = document.getElementById("createDentistForm");
+        createDentistForm.style.display = "block";
+
+        // Hide Create button and show Update button
+        const invisibleCreateBtn = document.getElementById("createButton");
+        invisibleCreateBtn.style.display = "none";
+        const invisibleUpdateBtn = document.getElementById("updateButton");
+        invisibleUpdateBtn.style.display = "block";
+
+        // When the user clicks the "Update" button
+        document.getElementById("updateButton").onclick = async function() {
+            try {
+                // Get updated dentist data from form
+                const updatedName = document.getElementById("dentistName").value;
+                const updatedSpecialization = document.getElementById("dentistSpecialization").value;
+                const updatedPhoneNumber = document.getElementById("dentistPhoneNumber").value;
+                const updatedEmail = document.getElementById("dentistEmail").value;
+
+                // Send PUT request to update dentist
+                const updateResponse = await fetch(`/dentists/${dentistId}`, {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${access_token}`
+                    },
+                    body: JSON.stringify({
+                        name: updatedName,
+                        specialization: updatedSpecialization,
+                        phone_number: updatedPhoneNumber,
+                        email: updatedEmail
+                    })
+                });
+
+                if (!updateResponse.ok) {
+                    throw new Error("Failed to update dentist");
+                }
+
+                // Hide the form after updating dentist
+                createDentistForm.style.display = "none";
+
+                // Clear form inputs
+                document.getElementById("dentistName").value = "";
+                document.getElementById("dentistSpecialization").value = "";
+                document.getElementById("dentistPhoneNumber").value = "";
+                document.getElementById("dentistEmail").value = "";
+
+                // Refresh dentists after updating
+                fetchDentistsAndCheckAdminStatus();
+            } catch (error) {
+                console.error("Error updating dentist:", error);
+            }
+        };
+
+        // Change cancel button text to "Cancel"
+        document.getElementById("cancelButton").innerText = "Cancel";
+
+        // When the user clicks the "Cancel" button
+        document.getElementById("cancelButton").onclick = function() {
+            // Hide the form without updating dentist
+            createDentistForm.style.display = "none";
+
+            // Clear form inputs
+            document.getElementById("dentistName").value = "";
+            document.getElementById("dentistSpecialization").value = "";
+            document.getElementById("dentistPhoneNumber").value = "";
+            document.getElementById("dentistEmail").value = "";
+        };
+    } catch (error) {
+        console.error("Error fetching dentist data:", error);
+    }
+}
+
+// Event listener for the "Create Dentist" button
+document.getElementById("createDentistBtn").addEventListener("click", function() {
+    // Hide Create button and show Update button
+    const invisibleCreateBtn = document.getElementById("createButton");
+    invisibleCreateBtn.style.display = "block";
+    const invisibleUpdateBtn = document.getElementById("updateButton");
+    invisibleUpdateBtn.style.display = "none";
+    toggleCreateDentistForm();
+});
+
+// Event listener for the "Create" button
+document.getElementById("createButton").addEventListener("click", function() {
+    createDentist();
+});
+
+// Event listener for the "Cancel" button
+document.getElementById("cancelButton").addEventListener("click", function() {
+    // Hide the create dentist form
+    document.getElementById("createDentistForm").style.display = "none";
+});
+
+function scrollToTop() {
+    document.documentElement.scrollTop = 0; // For modern browsers
+    document.body.scrollTop = 0; // For older browsers
+}
+
+// Function to create appointment
+function createAppointment(dentistId) {
+    // Construct the URL with the dentist ID and open the create appointment form
+    const appointmentPageUrl = `/main_appointments?dentist_id=${dentistId}&create_form_open=true`;
+    // Redirect the user to the appointment page with the dentist ID and create appointment form open
+    window.location.href = appointmentPageUrl;
+}
+
+// JavaScript code to check if the current user is a super admin and show the navigation item accordingly
+async function checkUserRole() {
+    try {
+        const access_token = localStorage.getItem('access_token');
+        const response = await fetch("/current_user", {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${access_token}`
+            }
+        });
+        if (!response.ok) {
+            throw new Error("Failed to fetch current user data");
+        }
+        const userData = await response.json();
+        const isSuperAdmin = userData.role === "super_admin";
+        // Show or hide the users navigation item based on the user's role
+        const usersNavItem = document.querySelector(".nav-item.usersLi");
+        if (isSuperAdmin) {
+            usersNavItem.style.display = "block";
+        } else {
+            usersNavItem.style.display = "none";
+        }
+    } catch (error) {
+        console.error("Error fetching current user data:", error);
+        // Handle error
+    }
+}
+
+// Call the function to check the user's role when the page loads
+checkUserRole();
+
+</script>
+</body>
+</html>

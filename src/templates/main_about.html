@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About Us</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        /* Additional custom styles */
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            padding-top: 100px; 
+        }
+        header {
+            flex-shrink: 0;
+        }
+        .navbar {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 1000;
+        }
+        .container {
+            padding: 20px;
+        }
+        footer {
+            background-color: #343a40;
+            color: #ffffff;
+            padding: 20px 0;
+            text-align: center;
+            margin-top: auto;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <div class="container">
+        <a class="navbar-brand" href="#">Odemchuk Dental</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav">
+                <li class="nav-item">
+                    <a class="nav-link" href="/main_about">About</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/main_patient_card">Patient Card</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/main_dentists">Dentists</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/main_treatments">Treatments</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/main_appointments">Appointments</a>
+                </li>
+                <li class="nav-item usersLi" style="display: none;">
+                    <a class="nav-link" href="/main_users">Users</a>
+                </li>
+                <li class="nav-item">
+                    <button class="btn btn-outline-danger" onclick="signOut()">Sign Out</button>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container">
+    <section id="about" class="bg-white">
+        <div class="container">
+            <h2 class="text-center mb-4">About Us</h2>
+            <p>Welcome to Odemchuk Dental Clinic, where your smile is our top priority!<br>Nestled in the heart of the city, our clinic offers state-of-the-art dental care in a warm and inviting atmosphere.<br><br>At Bright Smiles, we believe in creating beautiful, healthy smiles that last a lifetime. Our team of experienced dentists and caring staff are dedicated to providing personalized treatment plans tailored to meet your unique needs and goals.<br><br>From routine cleanings and check-ups to advanced cosmetic and restorative procedures, we offer a comprehensive range of services to ensure your oral health and confidence are always at their best.<br><br>We understand that visiting the dentist can be a daunting experience for some, which is why we strive to create a relaxing and comfortable environment for all our patients. With soothing music, gentle care, and a friendly smile, we'll make sure your time with us is as pleasant as possible.<br><br>Thank you for choosing Odemchuk Dental Clinic for your dental needs. We look forward to helping you achieve the bright, beautiful smile you deserve!</p>
+        </div>
+    </section>
+</div>
+
+<footer>
+    <div class="container">
+        <p>&copy; 2024 Dentist Office. All rights reserved.</p>
+    </div>
+</footer>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // Function to handle sign out
+    function signOut() {
+        // Delete access token from local storage
+        localStorage.removeItem('access_token');
+        // Redirect to index page
+        window.location.href = "/";
+    }
+    // JavaScript code to check if the current user is a super admin and show the navigation item accordingly
+async function checkUserRole() {
+    try {
+        const access_token = localStorage.getItem('access_token');
+        const response = await fetch("/current_user", {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${access_token}`
+            }
+        });
+        if (!response.ok) {
+            throw new Error("Failed to fetch current user data");
+        }
+        const userData = await response.json();
+        const isSuperAdmin = userData.role === "super_admin";
+        // Show or hide the users navigation item based on the user's role
+        const usersNavItem = document.querySelector(".nav-item.usersLi");
+        if (isSuperAdmin) {
+            usersNavItem.style.display = "block";
+        } else {
+            usersNavItem.style.display = "none";
+        }
+    } catch (error) {
+        console.error("Error fetching current user data:", error);
+        // Handle error
+    }
+}
+
+// Call the function to check the user's role when the page loads
+checkUserRole();
+
+</script>
+</body>
+</html>
