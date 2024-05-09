@@ -1,1 +1,1 @@
-# Dental office using fastAPI + SQLAlchemy ORM
+# Dental office using fastAPI + SQLAlchemy ORM + (PostgreSQL)
