@@ -144,7 +144,7 @@
                 <br>
             </div>
         </div>
-
+        <div id="errorMessage" class="alert alert-danger" style="display: none;"></div>
         <div class="appointment-list">
             <!-- Appointment list items will be populated here dynamically -->
         </div>
@@ -307,6 +307,8 @@ function populateSelect(selectId, data) {
 // Function to create appointment
 async function createAppointment() {
     try {
+        // Clear previous error message
+        hideErrorMessage();
         const appointmentDate = document.getElementById("appointmentDate").value;
         const appointmentTime = document.getElementById("appointmentTime").value;
         const dentistId = parseInt(document.getElementById("dentistSelect").value);
@@ -340,7 +342,12 @@ async function createAppointment() {
         });
 
         if (!response.ok) {
-            throw new Error("Failed to create appointment");
+            // Check if the error is due to a scheduling conflict
+            if (response.status === 409) {
+                displayErrorMessage("An appointment already exists within the specified time window.");
+            } else {
+                throw new Error("Failed to create appointment");
+            }
         }
 
         // Clear form inputs
@@ -623,6 +630,19 @@ async function checkSuperAdminRole() {
 
 // Call the function to check the user's role when the page loads
 checkSuperAdminRole();
+
+    // Function to handle error messages
+    function displayErrorMessage(message) {
+        const errorMessageElement = document.getElementById("errorMessage");
+        errorMessageElement.innerText = message;
+        errorMessageElement.style.display = "block";
+    }
+
+    // Function to hide error messages
+    function hideErrorMessage() {
+        const errorMessageElement = document.getElementById("errorMessage");
+        errorMessageElement.style.display = "none";
+    }
 
 </script>
 </body>

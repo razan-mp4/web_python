@@ -1,5 +1,10 @@
 from sqlalchemy.orm import Session
 
+from datetime import timedelta
+from sqlalchemy import and_
+
+from fastapi import HTTPException
+
 from ..models import appointment_model
 
 from ..schemas import appointment_schema
@@ -7,6 +12,20 @@ from .treatment_crud import get_treatment
 
 
 def create_appointment(db: Session, appointment_data: appointment_schema.AppointmentCreate):
+    # Calculate end time by adding 20 minutes to the start time
+    end_time = appointment_data.date_and_time + timedelta(minutes=20)
+    
+    # Check if any appointments already exist within the specified time window
+    existing_appointment = db.query(appointment_model.Appointment).filter(
+        and_(
+            appointment_model.Appointment.date_and_time >= appointment_data.date_and_time,
+            appointment_model.Appointment.date_and_time <= end_time
+        )
+    ).first()
+
+    if existing_appointment:
+        # Appointment already exists within the specified time window, raise an exception or handle accordingly
+        raise HTTPException(status_code=409, detail="An appointment already exists within the specified time window")
     treatment_ids = appointment_data.treatment_ids # Extract treatment IDs
     new_appointment = appointment_model.Appointment(**appointment_data.dict(exclude={'treatment_ids'}))
     db.add(new_appointment)
