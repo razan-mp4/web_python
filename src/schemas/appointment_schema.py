@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-
+from bson import ObjectId
 from datetime import datetime
 
 from .treatment_schema import Treatment
@@ -8,8 +8,8 @@ from .treatment_schema import Treatment
 class AppointmentBase(BaseModel):
     date_and_time: datetime
     notes: str | None = None
-    patient_id: int
-    dentist_id: int
+    patient_id: str
+    dentist_id: str
 
 
 class AppointmentCreate(AppointmentBase):
@@ -20,7 +20,7 @@ class AppointmentUpdate(AppointmentBase):
 
 
 class Appointment(AppointmentBase):
-    id: int
+    _id: ObjectId
     treatments: list[Treatment] = []
     
 

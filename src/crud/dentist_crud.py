@@ -1,40 +1,43 @@
-from sqlalchemy.orm import Session
-
-from ..models import dentist_model
+from pymongo.collection import Collection
+from pymongo.results import InsertOneResult, DeleteResult, UpdateResult
+from bson import ObjectId
 from ..schemas import dentist_schema
+from typing import Optional, List
 
+def create_dentist(db: Collection, dentist_data: dentist_schema.DentistCreate) -> Optional[dict]:
+    new_dentist_data = dentist_data.dict()
+    result: InsertOneResult = db.insert_one(new_dentist_data)
+    if result.inserted_id:
+        new_dentist_data["_id"] = result.inserted_id
+        return new_dentist_data
+    return None
 
-def create_dentist(db: Session, dentist_data: dentist_schema.DentistCreate):
-    new_dentist = dentist_model.Dentist(**dentist_data.dict())
-    db.add(new_dentist)
-    db.commit()
-    db.refresh(new_dentist)
-    return new_dentist
+def get_dentist(db: Collection, dentist_id: str) -> Optional[dict]:
+    dentist = db.find_one({"_id": ObjectId(dentist_id)})
+    return dentist
 
-def get_dentist(db: Session, dentist_id: int):
-    return db.query(dentist_model.Dentist).filter(dentist_model.Dentist.id == dentist_id).first()
+def get_dentist_by_email(db: Collection, email: str) -> Optional[dict]:
+    dentist = db.find_one({"email": email})
+    return dentist
 
-def get_dentist_by_email(db: Session, email: str):
-    return db.query(dentist_model.Dentist).filter(dentist_model.Dentist.email == email).first()
+def get_dentists(db: Collection, skip: int = 0, limit: int = 10, dentist_id: str = None) -> List[dict]:
+    query = {}  # Query to filter documents, you can add more filters as needed
+    if dentist_id:
+        query["_id"] = ObjectId(dentist_id)
+    dentists = db.find(query).skip(skip).limit(limit)
+    return list(dentists)
 
-def get_dentists(db: Session, skip: int = 0, limit: int = 10, dentist_id: int | None = None) -> list[dentist_model.Dentist]:
-    query = db.query(dentist_model.Dentist)
-    if dentist_id is not None:
-        query = query.filter(dentist_model.Dentist.id == dentist_id)
-    return query.offset(skip).limit(limit).all()
+def update_dentist(db: Collection, dentist_id: str, dentist_data: dentist_schema.DentistCreate) -> Optional[dict]:
+    updated_dentist_data = dentist_data.dict(exclude_unset=True)
+    result: UpdateResult = db.update_one({"_id": ObjectId(dentist_id)}, {"$set": updated_dentist_data})
+    if result.modified_count > 0:
+        updated_dentist = db.find_one({"_id": ObjectId(dentist_id)})
+        return updated_dentist
+    return None
 
-def update_dentist(db: Session, dentist_id: int, dentist_data: dentist_schema.DentistCreate):
-    db_dentist = db.query(dentist_model.Dentist).filter(dentist_model.Dentist.id == dentist_id).first()
-    if db_dentist:
-        for key, value in dentist_data.dict(exclude_unset=True).items():
-            setattr(db_dentist, key, value)
-        db.commit()
-        db.refresh(db_dentist)
-        return db_dentist
-
-def delete_dentist(db: Session, dentist_id: int):
-    db_dentist = db.query(dentist_model.Dentist).filter(dentist_model.Dentist.id == dentist_id).first()
-    if db_dentist:
-        db.delete(db_dentist)
-        db.commit()
-        return db_dentist
+def delete_dentist(db: Collection, dentist_id: str) -> Optional[dict]:
+    result: DeleteResult = db.delete_one({"_id": ObjectId(dentist_id)})
+    if result.deleted_count > 0:
+        deleted_dentist = {"_id": dentist_id}  # Return the ID of the deleted dentist
+        return deleted_dentist
+    return None

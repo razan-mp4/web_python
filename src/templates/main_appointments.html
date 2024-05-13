@@ -223,8 +223,8 @@ async function displayAppointments(appointments) {
                 <p><strong>Patient:</strong> ${patientName}</p>
                 <p><strong>Treatments:</strong> ${treatments}</p>
                 <p><strong>Notes:</strong> ${appointment.notes}</p>
-                <button class="btn btn-danger" onclick="deleteAppointment(${appointment.id})">Delete</button>
-                <button class="btn btn-warning" onclick="updateAppointment(${appointment.id})">Update</button>
+                <button class="btn btn-danger" onclick="deleteAppointment(${appointment._id})">Delete</button>
+                <button class="btn btn-warning" onclick="updateAppointment(${appointment._id})">Update</button>
             `;
             appointmentList.appendChild(appointmentItem);
         }
@@ -309,9 +309,9 @@ async function createAppointment() {
     try {
         const appointmentDate = document.getElementById("appointmentDate").value;
         const appointmentTime = document.getElementById("appointmentTime").value;
-        const dentistId = parseInt(document.getElementById("dentistSelect").value);
-        const patientId = parseInt(document.getElementById("patientSelect").value);
-        const treatmentId = parseInt(document.getElementById("treatmentSelect").value);
+        const dentistId = document.getElementById("dentistSelect").value;
+        const patientId = document.getElementById("patientSelect").value;
+        const treatmentId = document.getElementById("treatmentSelect").value;
         const notes = document.getElementById("notes").value;
 
         // Convert the date and time inputs into a Date object

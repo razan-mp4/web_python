@@ -1,14 +1,19 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from jose import jwt
+from pymongo.collection import Collection
 from datetime import datetime, timedelta, timezone
 from passlib.context import CryptContext
 from fastapi.security import OAuth2PasswordRequestForm
 from ..crud.user_crud import get_user_by_username
-from ..dependencies import get_db
+from ..dependencies import mongo_db
 
 
 router = APIRouter()
+
+
+# Get the MongoDB collection for users
+users_collection: Collection = mongo_db['users']
 
 # Secret key (randomly genarated with python library "secrets") to sign JWT tokens
 SECRET_KEY = "a3cbnM0yaxO5Syeqbsmc0NxdyaLxpn5p0KpfGbhaRUY"
@@ -35,16 +40,16 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
 
 # Sign-in endpoint
 @router.post("/")
-def sign_in(user_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+def sign_in(user_data: OAuth2PasswordRequestForm = Depends()):
     # Check if the user exists
-    user = get_user_by_username(db, username=user_data.username)
-    if not user or not verify_password(user_data.password, user.password):
+    user = users_collection.find_one({"username": user_data.username})
+    if not user or not verify_password(user_data.password, user["password"]):
         raise HTTPException(status_code=401, detail="Incorrect email or password")
     
     # Create access token
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": user.username, "role": user.role},
+        data={"sub": user["username"], "role": user["role"]},
         expires_delta=access_token_expires
     )
     

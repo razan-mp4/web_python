@@ -1,63 +1,66 @@
-from sqlalchemy.orm import Session
-from ..models import user_model
+from pymongo.collection import Collection
+from bson.objectid import ObjectId
 from ..schemas import user_schema
+from ..dependencies import mongo_db
 
-def create_user(db: Session, user_data: user_schema.UserCreate):
-    db_user =  user_model.User(username=user_data.username, email=user_data.email, password=user_data.password, is_active=user_data.is_active, role=user_data.role)
-    db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
-    return db_user
+# MongoDB users collection
+users_collection: Collection = mongo_db['users']
 
+def initialize_user_collection(collection):
+    global users_collection
+    users_collection = collection
 
-def get_user_by_email(db: Session, email: str):
-    return db.query(user_model.User).filter(user_model.User.email == email).first()
+def create_user(user_data: user_schema.UserCreate):
+    # Insert user_data into MongoDB users collection
+    inserted_user = users_collection.insert_one(user_data.dict())
+    return str(inserted_user.inserted_id)
 
-def get_user_by_username(db: Session, username: str):
-    return db.query(user_model.User).filter(user_model.User.username == username).first()
+def get_user_by_username(username: str):
+    # Query MongoDB users collection for a user by username
+    user = users_collection.find_one({"username": username})
+    return user
 
-def get_user_by_id(db: Session, user_id: int):
-    return db.query(user_model.User).filter(user_model.User.id == user_id).first()
+def get_user_by_email(email: str):
+    # Query MongoDB users collection for a user by email
+    user = users_collection.find_one({"email": email})
+    return user
 
+def get_user_by_id(user_id: str):
+    # Query MongoDB users collection for a user by ID
+    user = users_collection.find_one({"_id": ObjectId(user_id)})
+    return user
 
-def update_user(db: Session, user_id: int, user_data: user_schema.UserUpdate):
-    db_user = db.query(user_model.User).filter(user_model.User.id == user_id).first()
-    if db_user:
-        for key, value in user_data.dict(exclude_unset=True).items():
-            setattr(db_user, key, value)
-        db.commit()
-        db.refresh(db_user)
-    return db_user
+def update_user(user_id: str, user_data: user_schema.UserUpdate):
+    # Update user_data in MongoDB users collection
+    updated_user = users_collection.update_one({"_id": ObjectId(user_id)}, {"$set": user_data.dict()})
+    return updated_user.modified_count > 0
 
+def delete_user(user_id: str):
+    # Delete user from MongoDB users collection
+    deleted_user = users_collection.delete_one({"_id": ObjectId(user_id)})
+    return deleted_user.deleted_count > 0
 
-def delete_user(db: Session, user_id: int):
-    db_user = db.query(user_model.User).filter(user_model.User.id == user_id).first()
-    if db_user:
-        db.delete(db_user)
-        db.commit()
-    return db_user
+def get_all_users():
+    # Retrieve all users from MongoDB users collection
+    all_users = users_collection.find()
+    return list(all_users)
 
-
-def get_all_users(db: Session) -> list[user_model.User]:
-    return db.query(user_model.User).all()
-
-
-def check_super_admin_exists(db: Session) -> bool:
-    super_admin = db.query(user_model.User).filter_by(role='super_admin').first()
+def check_super_admin_exists():
+    # Check if super admin exists in MongoDB users collection
+    super_admin = users_collection.find_one({"role": "super_admin"})
     return super_admin is not None
 
-def create_super_admin(db: Session) -> user_model.User:
-    if check_super_admin_exists(db):
-        return
-    super_admin = user_model.User(
-        username='super_admin',
-        email='super_admin@example.com',
-        password='$2b$12$86QXFH/oGwyPdl07a4QzjuchN5B.PKxNLErQbrUbzPnW63KZwEFTK',  # 'superadminpassword'
-        role='super_admin',
-        is_active=True  # Assuming super admin is always active
-    )
-    db.add(super_admin)
-    db.commit()
-    db.refresh(super_admin)
-    return super_admin
-
+def create_super_admin():
+    # Create super admin in MongoDB users collection if not exists
+    if not check_super_admin_exists():
+        super_admin_data = {
+            "username": "super_admin",
+            "email": "super_admin@example.com",
+            "password": "$2b$12$86QXFH/oGwyPdl07a4QzjuchN5B.PKxNLErQbrUbzPnW63KZwEFTK",  # 'superadminpassword'
+            "role": "super_admin",
+            "is_active": True
+        }
+        inserted_super_admin = users_collection.insert_one(super_admin_data)
+        return str(inserted_super_admin.inserted_id)
+    else:
+        return None

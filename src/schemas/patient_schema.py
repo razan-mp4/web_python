@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from datetime import date
 from typing import Optional, List
+from bson import ObjectId
 
 from .appointment_schema import Appointment
 
@@ -10,7 +11,7 @@ class PatientBase(BaseModel):
     address: str
     phone_number: str
     date_of_birth: date
-    user_id: Optional[int]
+    user_id: Optional[str]
 
 
 class PatientCreate(PatientBase):
@@ -18,7 +19,7 @@ class PatientCreate(PatientBase):
 
 
 class Patient(PatientBase):
-    id: int
+    _id: ObjectId
     appointments: List[Appointment] = []
 
     class Config:

@@ -1,55 +1,47 @@
-from sqlalchemy.orm import Session
-
-from ..models import appointment_model
-
+from pymongo.collection import Collection
+from bson.objectid import ObjectId
 from ..schemas import appointment_schema
 from .treatment_crud import get_treatment
 
-
-def create_appointment(db: Session, appointment_data: appointment_schema.AppointmentCreate):
-    treatment_ids = appointment_data.treatment_ids # Extract treatment IDs
-    new_appointment = appointment_model.Appointment(**appointment_data.dict(exclude={'treatment_ids'}))
-    db.add(new_appointment)
-    db.commit()
-    db.refresh(new_appointment)
-    
+def create_appointment(db: Collection, appointment_data: appointment_schema.AppointmentCreate):
+    treatment_ids = appointment_data.treatment_ids
+    new_appointment = appointment_data.dict(exclude={'treatment_ids'})
     # Associate treatments with the appointment
+    new_appointment['treatments'] = []
     for treatment_id in treatment_ids:
         treatment = get_treatment(db, treatment_id)
         if treatment:
-            new_appointment.treatments.append(treatment)
-    
-    db.commit()
+            new_appointment['treatments'].append(treatment)
+    # Insert the appointment into the MongoDB collection
+    appointment_id = db.insert_one(new_appointment).inserted_id
+    new_appointment['_id'] = appointment_id
     return new_appointment
 
-def get_appointment(db: Session, appointment_id: int):
-    return db.query(appointment_model.Appointment).filter(appointment_model.Appointment.id == appointment_id).first()
+def get_appointment(db: Collection, appointment_id: str):
+    return db.find_one({"_id": ObjectId(appointment_id)})
 
-def get_appointments(db: Session, skip: int = 0, limit: int = 10):
-    return db.query(appointment_model.Appointment).offset(skip).limit(limit).all()
+def get_appointments(db: Collection, skip: int = 0, limit: int = 100):
+    return list(db.find().skip(skip).limit(limit))
 
-def update_appointment(db: Session, appointment_id: int, appointment_data: appointment_schema.AppointmentCreate):
-    treatment_ids = appointment_data.treatment_ids  # Extract treatment IDs
-    db_appointment = db.query(appointment_model.Appointment).filter(appointment_model.Appointment.id == appointment_id).first()
-    if db_appointment:
-        for key, value in appointment_data.dict(exclude_unset=True).items():
-            setattr(db_appointment, key, value)
-        # Clear existing treatments and associate new treatments
-        db_appointment.treatments.clear()
-        for treatment_id in treatment_ids:
-            treatment = get_treatment(db, treatment_id)
-            if treatment:
-                db_appointment.treatments.append(treatment)
-        db.commit()
-        db.refresh(db_appointment)
-        return db_appointment
+def update_appointment(db: Collection, appointment_id: str, appointment_data: appointment_schema.AppointmentCreate):
+    treatment_ids = appointment_data.treatment_ids
+    # Prepare updated appointment data
+    updated_appointment = appointment_data.dict(exclude_unset=True)
+    updated_appointment['treatments'] = []
+    for treatment_id in treatment_ids:
+        treatment = get_treatment(db, treatment_id)
+        if treatment:
+            updated_appointment['treatments'].append(treatment)
+    # Update the appointment in the MongoDB collection
+    db.update_one({"_id": ObjectId(appointment_id)}, {"$set": updated_appointment})
+    # Return the updated appointment
+    return get_appointment(db, appointment_id)
 
-def delete_appointment(db: Session, appointment_id: int):
-    db_appointment = db.query(appointment_model.Appointment).filter(appointment_model.Appointment.id == appointment_id).first()
-    if db_appointment:
-        db.delete(db_appointment)
-        db.commit()
-        return db_appointment
+def delete_appointment(db: Collection, appointment_id: str):
+    appointment = get_appointment(db, appointment_id)
+    if appointment:
+        db.delete_one({"_id": ObjectId(appointment_id)})
+    return appointment
 
-def get_patient_appointments(db: Session, patient_id: int, skip: int = 0, limit: int = 10):
-    return db.query(appointment_model.Appointment).filter(appointment_model.Appointment.patient_id == patient_id).offset(skip).limit(limit).all()
+def get_patient_appointments(db: Collection, patient_id: int, skip: int = 0, limit: int = 10):
+    return list(db.find({"patient_id": patient_id}).skip(skip).limit(limit))

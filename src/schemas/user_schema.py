@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional
+from bson import ObjectId
 
 from .patient_schema import PatientCreate
 
@@ -19,7 +20,7 @@ class UserUpdate(BaseModel):
     role: Optional[str] = None
 
 class User(UserBase):
-    id: int
+    _id: ObjectId
 
     class Config:
         orm_mode = True

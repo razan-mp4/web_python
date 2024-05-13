@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-
+from bson import ObjectId
 
 class TreatmentBase(BaseModel):
     name: str
@@ -10,7 +10,7 @@ class TreatmentCreate(TreatmentBase):
     pass
 
 class Treatment(TreatmentBase):
-    id: int
+    _id: ObjectId  # Use bson.ObjectId for MongoDB's _id field
 
     class Config:
         orm_mode = True
